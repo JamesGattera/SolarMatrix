@@ -1,0 +1,47 @@
+Human_Init
+I was watching a breakdown of the ATTINY DIP IC and found myself wanting to code again,
+
+Project Intention::
+Pull solar through new solar cells into a battery, and have that battery percentage readout feed a LED matrix. 
+one line of dots to start, then maybe some pixel art, eventual progression into I2C Screen
+
+Parts List:
+-
+Fresh Mini Breadboard, 30 * A-E + F-J
+Fresh Crocodile Clips
+-
+Old Pin-Jumpers
+Aging Pi-Pico-W (2022)
+-
+"788BS" 8x8 LED Matrix
+"70x70" Solar Cell/ Panel (Knock-Off)
+-
+Box-New USB cable
+Unused Portable Soldering Iron kit (Dubious/Cheap)
+-
+
+---------------
+20:47/15/03/2026
+
+I think the steps to take are;
+A, Desoldering plug header from solar panel/cel for use(via jumpers) with Pico.
+B, Ressurecting VS Code, and ensuring Pico function.
+C, Pin Wiring and initial Proof of dot display
+D, Creative Prototyping.
+
+20:50, Iron Unpack...
+
+20:56, I'm loathe to destructivley adapt parts, but given these clips and panel, I'm not making a huge loss; 
+I selected a white clip to cut in half, and will tin both branches to the cell.
+I tell myself I have more, and experimentation is the primary intention here.
+
+Rosin
+Although packaged securely, and marked "high-quality rosin" the contained brown stuff was solid - I've cracked it, but I'm concerned - Is this a shelf-preserve-style issue?
+I'll try applying heated tip once charged.
+The sponge was originally thin, bur sprung to fill its tray in the iron 'shelf'
+
+21:06, this should be enough charge for three small actions...
+
+21:25, I think I nailed this solder joint, especially given months without practice.
+Next up, check integrity of microcomputer...
+
