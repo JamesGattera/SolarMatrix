@@ -52,3 +52,28 @@ Will try to extract those files for GHub, and start fresh.
 just needed a little patience and wider thinking, much like my frustration with C, UF2, and VSCode tonight.
 God Bless Thonny for her simplistic design.
 
+My next rage is for VSCode now forcing an AI chatbot to the side of the screen. Must Kill.
+
+04:41
+okay, i've got a few things understood, a blinking LED, and an understanding that my small breacboard won't handle a 16-pin dot display easily
+I've two shift registers, but dont feel like that complexity will be fruitful.
+Instead, I'll look for other display logic; the control theory is more important for the core project;; Display charge as numeric and percentage.
+
+so, analog read, sigh, i want nice desplays, i like a fun UX
+that's for the future IG.
+
+0442
+
+-----
+
+Okay, new parts introduced;; 
+Panasonic BR2032 Watch battery with Integral Pins(3)
+2510sr-1 10-segment LED 'strip'/'block'(10)
+
+05:18
+the battery legs were flimsy so cold-tacked and soldered jumper legs to them.
+
+05:38, discovered these batteries are non-rechargable, I was self-decieved during purchace last year
+
+Introducing string of "inu001" silicon diodes and going to bed.
+05:41
