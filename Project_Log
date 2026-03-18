@@ -77,3 +77,24 @@ the battery legs were flimsy so cold-tacked and soldered jumper legs to them.
 
 Introducing string of "inu001" silicon diodes and going to bed.
 05:41
+
+
+
+
+02:16, 18, 03, 2026
+
+you'll hate me but im sidetracking, i wanna test if my speaker works so im refactoring
+
+breadboard, 
+PicoW,
+jumpers,
+SN74HC595N Shift Register,
+5161BS 8 segment display, 
+8ohm, 2 what speaker
+
+process tonight, get pin0 warbling static, then start encoding the shift register with 8-segment code blocks.
+
+might take a week
+
+0221
+
