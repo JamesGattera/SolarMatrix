@@ -29,28 +29,28 @@ Shift_input = machine.Pin(20, machine.Pin.OUT)
 "5161BS 7/8 segment display"
 # 7-segment digits as strings ('0' = HIGH, '1' = LOW)
 #Both annodes linked to High-Rail.
-digits = {
-    0: '00111111',
-    1: '00000110',
-    2: '01011011',
-    3: '01001111',
-    4: '01100110',
-    5: '01101101',
-    6: '01111101',
-    7: '00000111',
-    8: '01111111',
-    9: '01101111'
-}
+sequence = [1,2,3,4,5,6,7,8,9,0,'DP','A','B','C','D','E','F','G','DP',]
 
 segments = {
-    'A': '00000001',
-    'B': '00000010',
-    'C': '00000100',
-    'D': '00001000',
-    'E': '00010000',
-    'F': '00100000',
-    'G': '01000000',
-    'DP':'10000000'
+    'A': '11111110',
+    'B': '11111101',
+    'C': '11111011',
+    'D': '11110111',
+    'E': '11101111',
+    'F': '11011111',
+    'G': '10111111',
+    'DP': '01111111',
+
+    0: '11000000',
+    1: '11111001',
+    2: '10100100',
+    3: '10110000',
+    4: '10011001',
+    5: '10010010',
+    6: '10000010',
+    7: '11111000',
+    8: '10000000',
+    9: '10010000',
 }
 
 
@@ -61,6 +61,7 @@ segments = {
 "Sound and Flash for 0.25 seconds"
 def sig(): #for Signal.
     LED.value(1)
+    shift_byte_str('01111111')#Working Dot.
     for _ in range(25): #Quarter-second flash.
         pass # Ive disconnected the speaker for now - lower physical complexity
         Speaker.value(1)
@@ -72,7 +73,7 @@ def sig(): #for Signal.
 # Byte Pusher
 def shift_byte_str(byte_str):
     Shift_Rclk.value(0)  #ensures latch-LOW
-    for bit in reversed(byte_str):
+    for bit in byte_str: #flip: reversed(byte_str):
         Shift_input.value(int(bit))
         #
         Shift_srclk.value(1)
@@ -83,22 +84,15 @@ def shift_byte_str(byte_str):
     sleep(0.01) # firm delay
     Shift_Rclk.value(0)
 
-"""Display a single digit on 7-segment."""
-def display_number(n):
-    # Display number 0-9
-    if 0 <= n <= 9:
-        shift_byte_str(digits[n])
-
 # Test loop: cycle all segments
 if __name__ == '__main__':
     # Flash LED once
-    LED.value(1)
-    sleep(0.25)
-    LED.value(0)
+    sig() #Init signal.
     
     while True:
-        shift_byte_str('11111111')
-        sleep(1)
-
-        shift_byte_str('00000000')
-        sleep(1)
+        sleep(0.1)
+        for key in sequence:
+            shift_byte_str(segments[key])
+            sleep(0.01) #proof timing. fast loop. splash.
+        shift_byte_str('01111111')# Dot Ready.
+        #break #testing handbreak.
