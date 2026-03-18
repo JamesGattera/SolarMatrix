@@ -112,3 +112,10 @@ Maybe switch to the solar reception side of things.
 05:17
 18/03/2026
 
+2057, 18/03/2026
+BREAKTHROUGH
+After another two hours, and re-reading the datasheet, i discovered that I'd neglected the SRCLR pin.
+Floating, It was clearing immediatley, rather than storing instructions.
+We now have a reliable blink, through the shift-register. Uploading Update to Main.py.
+2053
+
