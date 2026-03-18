@@ -1,9 +1,7 @@
 "main.py"
 
-
 import machine
 from utime import sleep
-
 
 #Side-Show Components ;;
 "8-Ohm, 2-Watt speaker"
@@ -13,7 +11,7 @@ Speaker = machine.Pin(27,machine.Pin.OUT)
 Freq = 0.005 #Bassy. Working. Preffered Freq. Dont judge.
 
 #Shift Register Pins ;;
-"SN74HC595N Shift Register" 
+"SN74HC595N Shift Register"
 #
 # Shift Forward
 Shift_srclk = machine.Pin(18, machine.Pin.OUT)#shift in.
@@ -27,7 +25,14 @@ Shift_input = machine.Pin(20, machine.Pin.OUT)
 "5161BS 7/8 segment display"
 # 7-segment digits as strings ('0' = HIGH, '1' = LOW)
 #One annode linked to High-Rail.
-sequence = [1,2,3,4,5,6,7,8,9,0,'DP','A','B','C','D','E','F','G','DP',]
+
+#Output Presets;;
+SequenceA = [1,2,3,4,5,6,7,8,9,0,
+             'A','B','C','D','E','F','G','DP',]
+#Circle
+SequenceB = ['G', 'C', 'D', 'E',]
+#Zero
+SequenceC = ['A', 'B', 'C', 'D', 'E', 'F',]
 
 segments = {
     'A': '11111110',
@@ -52,7 +57,6 @@ segments = {
 }
 
 
-
 #Functions Block
 
 # Init Block
@@ -69,28 +73,28 @@ def sig(): #for Signal.
     LED.value(0)
 
 # Byte Pusher
+CycleTiming = 0.0005# lowest 'solid' speed is 0.0009 #0.001 is visible cycle.
 def shift_byte_str(byte_str):
     Shift_Rclk.value(0)  #ensures latch-LOW
     for bit in byte_str: #flip: reversed(byte_str):
         Shift_input.value(int(bit))
-        #
+        
         Shift_srclk.value(1)
-        sleep(0.01) # firm delay
+        sleep(CycleTiming) # firm delay
         Shift_srclk.value(0)
-        sleep(0.01) # firm delay
+        sleep(CycleTiming) # firm delay
+    
     Shift_Rclk.value(1)
-    sleep(0.01) # firm delay
+    sleep(0.001) # firm delay
     Shift_Rclk.value(0)
 
 # Test loop: cycle all segments
 if __name__ == '__main__':
     # Flash LED once
     sig() #Init signal.
-    
     while True:
-        sleep(0.1)
-        for key in sequence:
+        #sleep(0.1)
+        Sequence = SequenceB
+        for key in Sequence:
             shift_byte_str(segments[key])
-            sleep(0.01) #proof timing. fast loop. splash.
-        shift_byte_str('01111111')# Dot Ready.
-        #break #testing handbreak.
+            sleep(CycleTiming)
