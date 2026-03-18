@@ -14,8 +14,6 @@ Freq = 0.005 #Bassy. Working. Preffered Freq. Dont judge.
 
 #Shift Register Pins ;;
 "SN74HC595N Shift Register" 
-#Rail-Powered and Rail-Gounded
-#Output-Enable Rail-Low (Bright/Decisive)
 #
 # Shift Forward
 Shift_srclk = machine.Pin(18, machine.Pin.OUT)#shift in.
@@ -28,7 +26,7 @@ Shift_input = machine.Pin(20, machine.Pin.OUT)
 
 "5161BS 7/8 segment display"
 # 7-segment digits as strings ('0' = HIGH, '1' = LOW)
-#Both annodes linked to High-Rail.
+#One annode linked to High-Rail.
 sequence = [1,2,3,4,5,6,7,8,9,0,'DP','A','B','C','D','E','F','G','DP',]
 
 segments = {
@@ -62,7 +60,7 @@ segments = {
 def sig(): #for Signal.
     LED.value(1)
     shift_byte_str('01111111')#Working Dot.
-    for _ in range(25): #Quarter-second flash.
+    for _ in range(25): #Quarter-second Output.
         pass # Ive disconnected the speaker for now - lower physical complexity
         Speaker.value(1)
         sleep(Freq) #on
