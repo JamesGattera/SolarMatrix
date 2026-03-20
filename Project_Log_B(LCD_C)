@@ -1,0 +1,24 @@
+16:51/20/03/2026
+
+Intentions::
+I progressed to ESP32, feeling C would be cooler and more fun, and dropping the Shift-Register/Numeric for an Integral LCD would be cleaner
+
+As of Last night, we're running a clean pair of breadboards under my ESP32-WROOM-32(LCD)
+
+Practical issues::
+The Pin numbers are face-down.
+The only visible "Silkscreen" is effectivley 
+
+SDA  -> GPIO23  (MOSI)
+SCL  -> GPIO18  (SCLK)
+CS   -> GPIO15
+RS   -> GPIO2   (DC)
+RST  -> GPIO4
+VDO  -> 3.3V
+LEDA -> 3.3V
+LEDK -> GPIO32
+GND  -> GND
+
+I spent 0200, to 0600, getting the Backlight to work at a set of milisecond timings, went to bed at maybe 7, and slept by 10
+
+present time is 16:54, uploading first C Library
