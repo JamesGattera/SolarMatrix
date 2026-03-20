@@ -22,3 +22,13 @@ GND  -> GND
 I spent 0200, to 0600, getting the Backlight to work at a set of milisecond timings, went to bed at maybe 7, and slept by 10
 
 present time is 16:54, uploading first C Library
+
+Took a while to relearn, git only makes folders if theres something to put inside, AI suggested:: /LCD_C/.gitkeep
+C files only need :: 
+Main/
+CMakeLists.txt
+sdkconfig (OPTIONAL) :: for 4MB instead of default 2MB
+/////ESP-IDF: SDK Configuration Editor is how we hard-change those settings.
+
+17:06
+
