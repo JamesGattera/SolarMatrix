@@ -32,3 +32,296 @@ sdkconfig (OPTIONAL) :: for 4MB instead of default 2MB
 
 17:06
 
+00:01;25;03;2026;
+
+I'm so tired of C
+I've given this LCD/SPI my best go, but I feel I need to simplify things for myself, 
+I'm trying hardware, exertnal devices, and language all at once.
+
+This isn't a failure, but -in the tone of carlin- acoding misadventure;
+
+// main.c
+// Includes //
+//Necessary::
+#include "driver/spi_master.h"
+#include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include <string.h>
+//ESP-IDF::
+#include "esp_task_wdt.h" // Watchdog Implicits. Feed the timer directly.
+//From LCD Example:: (along with all the above)
+#include <stdlib.h>
+#include <inttypes.h>
+#include "esp_system.h"
+//#include "pretty_effect.h" //cant be found? possible representative of advanced effects.
+/*
+SDA  -> GPIO23  (MOSI)
+SCL  -> GPIO18  (SCLK)
+CS   -> GPIO15
+RS   -> GPIO2   (DC)
+RST  -> GPIO4
+VDO  -> 3.3V
+LEDA -> 3.3V
+LEDK -> GPIO32
+GND  -> GND
+Physical GPIO from plug to tail.(15/side - like 25 total useful.)
+Left Pins(3.3V, GND, GPIO15, GPIO2,  GPIO4,  GPIO16, GPIO17, GPIO5,  GPIO18, GPIO19, GPIO21, GPIO3,  GPIO1,  GPIO22, GPIO23)
+Right Pins(VIN, GND, GPIO13, GPIO12, GPIO14, GPIO27, GPIO26, GPIO25, GPIO33, GPIO32, GPIO35, GPIO34, GPIO39, GPIO36, RESET)
+// Command bytes for typical ST7735 / ILI9341 SPI LCD
+0x11 -> 17   // Sleep_Out           : Wake display from low-power sleep
+0x29 -> 41   // Display_On          : Enable pixel output
+0x28 -> 40   // Display_Off         : Turn pixel output off
+0x2C -> 44   // Memory_Write        : Start sending pixel data to RAM
+TODO::
+Setup CMD BYTES as callable//rational names over blind hex//Python-ish Dict Lookup by Key
+LEARN::
+esp_task_wdt_add()
+uint8_t
+*/
+// Configs // (used outputs) // Globals
+//LCD Pins::
+#define PIN_MOSI 23 //MasterOutSlaveIn.
+#define PIN_CLK  18 //Clock:Comand Timing
+#define PIN_CS   15 //Device(Chip) Select
+#define PIN_DC    2 //Data=1/Command=0
+#define PIN_RST   4 //pulling low resets the chip
+#define PIN_BL   32 //Works to control on-off (output. spent day working with it)
+//
+#define LCD_WIDTH  128 //standard ST7735 size (empirical default)
+#define LCD_HEIGHT 160
+//
+//TimingPresets (MS in whole integer.)::
+#define SpeedTiming  10
+#define CleanTiming  15
+#define EyeTiming    19
+#define HardTiming   20
+#define SlowTiming  750
+//External Triggers:
+#define PIN_KILL 13 //Kills Activity// ref Testing_Break
+//
+// ASCII Chars??
+const uint8_t font5x7[96][5] = {
+    // minimal demo:: only 'A'
+    [ 'A' - 32 ] = {0x7E,0x11,0x11,0x11,0x7E}
+};
+
+// Function Homebrews //
+volatile bool Testing_Break = false;
+void Kill_Switch_Init(void)
+{
+    gpio_set_direction(PIN_KILL, GPIO_MODE_INPUT);
+    gpio_set_pull_mode(PIN_KILL, GPIO_PULLUP_ONLY); //idle HIGH, press = LOW
+}
+void Kill_Switch_Poll(void)
+{
+    if (gpio_get_level(PIN_KILL) == 0)
+    {
+        Testing_Break = true;
+    }
+}
+
+// Industry Functions //
+// Basic LCD Start //
+spi_device_handle_t spi;
+
+// LOW LEVEL BYTE SEND
+void send_byte(unsigned char value, int is_data)
+{
+    if (is_data == 1) {
+        gpio_set_level(PIN_DC, 1); //Data Mode
+    } else {
+        gpio_set_level(PIN_DC, 0); //Command Mode
+    }
+
+    spi_transaction_t t;
+    memset(&t, 0, sizeof(t));
+    t.length = 8;
+    t.tx_buffer = &value;
+
+    spi_device_polling_transmit(spi, &t);
+
+    esp_task_wdt_reset();//keep system alive during heavy SPI
+}
+
+// LCD INIT
+void lcd_start()
+{
+    //hardware reset cycle
+    gpio_set_level(PIN_RST, 0);
+    vTaskDelay(pdMS_TO_TICKS(100));
+    gpio_set_level(PIN_RST, 1);
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    //wake panel
+    send_byte(17, 0); //Sleep Out
+    vTaskDelay(pdMS_TO_TICKS(120));
+
+    //memory orientation (MADCTL)//trial values change rotation
+    send_byte(54, 0);
+    send_byte(0x00, 1); //adjust if rotated/mirrored
+
+    //turn display on
+    send_byte(41, 0);
+    vTaskDelay(pdMS_TO_TICKS(12));
+}
+
+// SPI SETUP
+void SetupSPI(){
+    spi_bus_config_t bus = {0};
+    bus.mosi_io_num = PIN_MOSI;
+    bus.sclk_io_num = PIN_CLK;
+    bus.miso_io_num = -1;
+
+    spi_device_interface_config_t device = {0};
+    device.clock_speed_hz = 40000000; //pushed higher for faster frames
+    device.mode = 0;
+    device.spics_io_num = PIN_CS;
+    device.queue_size = 1;
+
+    spi_bus_initialize(SPI2_HOST, &bus, SPI_DMA_CH_AUTO);
+    spi_bus_add_device(SPI2_HOST, &device, &spi);
+}
+
+// Framebuffer //
+uint8_t FrameBuffer[LCD_WIDTH * LCD_HEIGHT * 2]; //RGB565 full frame
+
+// PIXEL CORE (absolute control)
+void set_pixel(int x, int y, uint16_t color)
+{
+    if (x < 0 || x >= LCD_WIDTH || y < 0 || y >= LCD_HEIGHT) return;
+
+    int i = (y * LCD_WIDTH + x) * 2;
+
+    FrameBuffer[i]     = color >> 8;
+    FrameBuffer[i + 1] = color & 0xFF;
+}
+
+// CLEAR SCREEN (fast fill)
+void clear_screen(uint16_t color)
+{
+    for (int i = 0; i < LCD_WIDTH * LCD_HEIGHT; i++) {
+        FrameBuffer[i*2]     = color >> 8;
+        FrameBuffer[i*2 + 1] = color & 0xFF;
+    }
+}
+
+// DRAW CHAR (5x7 raster write)
+void draw_char(int x, int y, const uint8_t *char_data) {
+    for (int col = 0; col < 5; col++) {
+        uint8_t line = char_data[col];
+        for (int row = 0; row < 7; row++) {
+            if (line & (1 << row)) {
+                set_pixel(x + col, y + row, 0xFFFF); //white pixel
+            }
+        }
+    }
+}
+
+// SET LCD FULL WINDOW (16-bit safe)
+void lcd_set_window()
+{
+    // Column (X)
+    send_byte(42, 0);
+    send_byte(0,1); send_byte(0,1); //start = 0
+    send_byte((LCD_WIDTH-1)>>8,1);
+    send_byte((LCD_WIDTH-1)&0xFF,1);
+
+    // Row (Y)
+    send_byte(43, 0);
+    send_byte(0,1); send_byte(0,1); //start = 0
+    send_byte((LCD_HEIGHT-1)>>8,1);
+    send_byte((LCD_HEIGHT-1)&0xFF,1);
+}
+
+// SEND FRAMEBUFFER (bulk transfer)
+void Send_FrameBuffer(){
+    lcd_set_window();        //define target area
+    send_byte(44, 0);        //memory write start
+
+    spi_transaction_t t;
+    memset(&t, 0, sizeof(t));
+    t.length = sizeof(FrameBuffer)*8;
+    t.tx_buffer = FrameBuffer;
+
+    spi_device_polling_transmit(spi,&t);
+
+    esp_task_wdt_reset(); //long transfer safety
+}
+void Send_Pixel_Block(int x, int y, uint16_t color)
+{
+    //set window to 1 pixel
+    send_byte(42, 0);
+    send_byte(0,1); send_byte(x,1);
+    send_byte(0,1); send_byte(x,1);
+
+    send_byte(43, 0);
+    send_byte(0,1); send_byte(y,1);
+    send_byte(0,1); send_byte(y,1);
+
+    send_byte(44, 0);
+
+    uint8_t data[2];
+    data[0] = color >> 8;
+    data[1] = color & 0xFF;
+
+    spi_transaction_t t = {0};
+    t.length = 16;
+    t.tx_buffer = data;
+
+    spi_device_polling_transmit(spi, &t);
+}
+// Main //
+void app_main(void)
+{
+    Kill_Switch_Init();
+    Kill_Switch_Poll();
+
+    gpio_set_direction(PIN_DC, GPIO_MODE_OUTPUT);
+    gpio_set_direction(PIN_RST, GPIO_MODE_OUTPUT);
+    gpio_set_direction(PIN_BL, GPIO_MODE_OUTPUT);
+    gpio_set_level(PIN_BL, 1); //backlight enable
+
+    SetupSPI();
+    lcd_start();
+
+    //initial clear
+    clear_screen(0x0000); //black
+    Send_FrameBuffer();
+
+    int pos = 0; //moving pixel (scanline test)
+
+    // erase previous pixel
+    set_pixel(pos - 1, 80, 0x0000);
+
+    // draw new pixel
+    set_pixel(pos, 80, 0xFFFF);
+
+    // send SMALL region instead of full frame (temporary hack: still full send)
+    Send_FrameBuffer();
+
+    while (!Testing_Break)
+    {
+        Kill_Switch_Poll();
+
+        // erase old pixel
+        Send_Pixel_Block(pos - 1, 80, 0x0000);
+
+        // draw new pixel
+        Send_Pixel_Block(pos, 80, 0xFFFF);
+
+        pos++;
+        if (pos >= LCD_WIDTH) pos = 0;
+
+        vTaskDelay(pdMS_TO_TICKS(1)); //visual pacing
+    }
+
+    if(Testing_Break)
+    {
+        printf("dead\n");
+    }
+
+    while(1){
+        vTaskDelay(500);// yeilding loop mandated by industry, preferred over full-kill
+    }
+}
