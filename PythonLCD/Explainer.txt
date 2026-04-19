@@ -1,0 +1,9 @@
+This iteration failed when I tried to make it async.
+
+At present, The contents are capable of;
+-filling full inbuilt screen 
+-with colour gradient 
+-in correct orientation
+
+Stretch-goals should be;
+-Learn: Data buffering, async SPI integration.
